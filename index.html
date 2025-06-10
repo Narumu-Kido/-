@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カードゲーム対戦記録アプリ</title>
+    <style>
+        /* 全体的なスタイル */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Interフォントを使用 */
+            margin: 0;
+            padding: 20px;
+            background-color: #fcebeb;
+            /* 薄い赤の背景 */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* 上部に寄せる */
+            min-height: 100vh;
+            /* 画面全体を覆う */
+            box-sizing: border-box;
+            /* パディングを含めて幅を計算 */
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            /* レスポンシブ対応 */
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            /* 角を丸く */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        h1,
+        h2 {
+            color: #cc0000;
+            /* 濃い赤 */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ffcccc;
+            /* 薄い赤のボーダー */
+            border-radius: 8px;
+            background-color: #fffafa;
+            /* ほぼ白の背景 */
+        }
+
+        /* フォームのスタイル */
+        form label {
+            display: block;
+            /* ラベルをブロック要素に */
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #660000;
+            /* 暗めの赤 */
+        }
+
+        form input[type="date"],
+        form input[type="text"],
+        form input[type="number"],
+        form select,
+        form textarea {
+            width: 100%;
+            /* 親要素の幅に合わせる */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ff9999;
+            /* 明るい赤のボーダー */
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        form textarea {
+            resize: vertical;
+            /* 縦方向のみリサイズ可能に */
+        }
+
+        form button[type="submit"] {
+            background-color: #e60000;
+            /* 赤 */
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            /* 幅を100%に */
+            transition: background-color 0.3s ease;
+            /* ホバーアニメーション */
+        }
+
+        form button[type="submit"]:hover {
+            background-color: #b30000;
+            /* ホバーで暗めの赤 */
+        }
+
+        /* 記録一覧のスタイル */
+        #records-container {
+            list-style: none;
+            padding: 0;
+        }
+
+        .match-record-item {
+            background-color: #ffe6e6;
+            /* 薄い赤の背景 */
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            /* レスポンシブ対応 */
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .match-record-item p {
+            margin: 5px 0;
+            flex-basis: calc(50% - 10px);
+            /* 2列表示、間隔を考慮 */
+            word-wrap: break-word;
+            /* 長い単語の折り返し */
+        }
+
+        .match-record-item p strong {
+            color: #800000;
+            /* 暗い赤 */
+        }
+
+        .match-record-item .actions {
+            flex-basis: 100%;
+            /* ボタンは常に新しい行に */
+            text-align: right;
+            margin-top: 15px;
+        }
+
+        /* 削除ボタンのスタイル */
+        .match-record-item button {
+            background-color: #dc3545;
+            /* 削除ボタンは赤 */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .match-record-item button:hover {
+            background-color: #c82333;
+            /* ホバーで暗めの赤 */
+        }
+
+        /* 統計情報のスタイル */
+        #statistics {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff0f0;
+            /* 非常に薄い赤 */
+            border: 1px solid #ffdddd;
+            /* 薄い赤のボーダー */
+            border-radius: 8px;
+        }
+
+        #statistics h3 {
+            color: #cc0000;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        #statistics p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        #statistics ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+
+        #statistics ul li {
+            margin-bottom: 5px;
+            color: #660000;
+        }
+
+        /* グラフコンテナのスタイル */
+        #chart-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ffcccc;
+            border-radius: 8px;
+            background-color: #fffafa;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 各デッキのグラフを格納するコンテナ */
+        .deck-chart-wrapper {
+            margin-bottom: 30px;
+            /* 各グラフ間のスペース */
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #ffcccc;
+            /* 区切り線 */
+        }
+
+        .deck-chart-wrapper:last-child {
+            border-bottom: none;
+            /* 最後の要素には区切り線をつけない */
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            form input[type="date"],
+            form input[type="text"],
+            form input[type="number"],
+            form select,
+            form textarea,
+            form button[type="submit"] {
+                width: 100%;
+            }
+
+            .match-record-item p {
+                flex-basis: 100%;
+                /* 小さい画面では1列表示 */
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>カードゲーム対戦記録</h1>
+
+        <section id="record-form">
+            <h2>新しい対戦を記録</h2>
+            <form id="match-form">
+                <label for="matchDate">日付:</label>
+                <input type="date" id="matchDate" required><br>
+
+                <label for="opponent">対戦相手:</label>
+                <input type="text" id="opponent" placeholder="相手の名前またはメモ" required><br>
+
+                <label for="myDeck">使用デッキ:</label>
+                <input type="text" id="myDeck" placeholder="例: 赤単アグロ" required><br>
+
+                <label for="opponentDeck">相手デッキ:</label>
+                <input type="text" id="opponentDeck" placeholder="例: 青白コントロール" required><br>
+
+                <label for="result">結果:</label>
+                <select id="result" required>
+                    <option value="win">勝利</option>
+                    <option value="lose">敗北</option>
+                </select><br>
+
+                <label for="turns">ターン数:</label>
+                <input type="number" id="turns" min="1" placeholder="例: 8"><br>
+
+                <label for="notes">メモ:</label>
+                <textarea id="notes" rows="3" placeholder="印象に残ったこと、反省点など"></textarea><br>
+
+                <button type="submit">記録を追加</button>
+            </form>
+        </section>
+
+        <section id="match-list">
+            <h2>対戦記録一覧</h2>
+            <div id="statistics">
+                <p>まだ対戦記録がありません。</p>
+            </div>
+            <ul id="records-container">
+            </ul>
+
+            <div id="chart-container">
+                <h2>デッキ別対戦相手別勝率</h2>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
