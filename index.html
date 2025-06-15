@@ -245,6 +245,54 @@
                 /* 小さい画面では1列表示 */
             }
         }
+
+        /* --- ↓↓↓ アコーディオンUI用のCSSを追加 ↓↓↓ --- */
+
+        .deck-group {
+            margin-bottom: 10px;
+            border: 1px solid #ffcccc;
+            border-radius: 8px;
+            overflow: hidden;
+            /* 角丸をキレイに見せるため */
+        }
+
+        .deck-header {
+            background-color: #ffe6e6;
+            color: #800000;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .deck-header:hover {
+            background-color: #ffdddd;
+        }
+
+        .match-list-panel {
+            padding: 0 15px 15px 15px;
+            background-color: white;
+            display: none;
+            /* 最初は非表示にしておく */
+        }
+
+        .match-list-panel .match-record-item {
+            /* 中のリストアイテムのスタイルを少し調整 */
+            box-shadow: none;
+            border-top: 1px solid #f0f0f0;
+            border-radius: 0;
+            padding: 15px 5px;
+        }
+
+        .match-list-panel .match-record-item:first-child {
+            border-top: none;
+        }
+
+        /* --- ↑↑↑ ここまで追加 ↑↑↑ --- */
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -288,8 +336,7 @@
             <div id="statistics">
                 <p>まだ対戦記録がありません。</p>
             </div>
-            <ul id="records-container">
-            </ul>
+            <div id="records-container"></div>
 
             <div id="chart-container">
                 <h2>デッキ別対戦相手別勝率</h2>
