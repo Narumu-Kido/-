@@ -40,71 +40,61 @@ function deleteMatch(index) {
     }
 }
 
-// --- 変更点2：displayMatches関数を完全に書き換え ---
 /**
  * 対戦記録をデッキごとにグループ化してアコーディオン表示する関数
  */
 function displayMatches() {
-    // まず表示エリアを空にする
     recordsContainer.innerHTML = '';
 
-    // 1. 対戦記録をデッキ名でグループ分けする
     const groupedByDeck = matches.reduce((acc, match) => {
         const deckName = match.myDeck;
-        // もし、まだそのデッキのグループがなければ、空の配列で初期化する
         if (!acc[deckName]) {
             acc[deckName] = [];
         }
-        // そのデッキのグループに、今回の対戦記録を追加する
         acc[deckName].push(match);
         return acc;
     }, {});
 
-    // 2. グループ分けしたデータをもとにHTMLを組み立てる
     for (const deckName in groupedByDeck) {
         const deckMatches = groupedByDeck[deckName];
 
-        // アコーディオンの各セクション（グループ）を作成
         const groupDiv = document.createElement('div');
         groupDiv.className = 'deck-group';
 
-        // ヘッダーボタンを作成
         const headerButton = document.createElement('button');
         headerButton.className = 'deck-header';
-        headerButton.textContent = `${deckName} (${deckMatches.length}戦)`; // 例: 赤単アグロ (5戦)
 
         const wins = deckMatches.filter(match => match.result === 'win').length;
-
-        // 2. このデッキグループの敗北数を計算する
         const losses = deckMatches.length - wins;
-
-        // 3. このデッキグループの勝率を計算する
         const winRate = deckMatches.length > 0 ? ((wins / deckMatches.length) * 100).toFixed(1) : 0;
-
-        // 4. ヘッダーボタンに、戦績と勝率も表示する
         headerButton.textContent = `${deckName} (${deckMatches.length}戦 / ${wins}勝 ${losses}敗 / 勝率: ${winRate}%)`;
 
-        // 対戦記録リストを格納するパネルを作成
         const panelDiv = document.createElement('div');
         panelDiv.className = 'match-list-panel';
 
-        // 各対戦記録のHTML（li要素）をパネルの中に追加していく
+        // --- ↓↓↓ここからが今回の修正箇所↓↓↓ ---
         deckMatches.forEach(match => {
-            const listItem = document.createElement('div'); // liからdivに変更
+            // 1. この対戦記録(match)が、元のmatches配列の何番目にあるかを探す
+            const originalIndex = matches.findIndex(originalMatch => originalMatch === match);
+
+            const listItem = document.createElement('div');
             listItem.className = 'match-record-item';
+
+            // 2. 削除ボタンを復活させ、見つけ出した正しいインデックスを渡す
             listItem.innerHTML = `
                 <p><strong>日付:</strong> ${match.date}</p>
                 <p><strong>相手デッキ:</strong> ${match.opponentDeck}</p>
                 <p><strong>結果:</strong> ${match.result}</p>
                 <p><strong>ターン数:</strong> ${match.turns ? match.turns : 'N/A'}</p>
                 <p style="flex-basis: 100%;"><strong>メモ:</strong> ${match.notes ? match.notes : 'なし'}</p>
+                <div class="actions">
+                    <button onclick="deleteMatch(${originalIndex})">削除</button>
+                </div>
             `;
-            // 削除ボタンは、どのmatches配列のインデックスか特定する必要があるため、少し工夫が必要
-            // ここでは簡略化のため、一旦削除ボタンの表示を保留します。
             panelDiv.appendChild(listItem);
         });
+        // --- ↑↑↑ここまでが修正箇所↑↑↑ ---
 
-        // 作成した要素を組み立てる
         groupDiv.appendChild(headerButton);
         groupDiv.appendChild(panelDiv);
         recordsContainer.appendChild(groupDiv);
