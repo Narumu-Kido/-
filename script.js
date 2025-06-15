@@ -1,10 +1,174 @@
 let matches = [];
-let myCharts = {}; // グラフのインスタンスを管理するためのオブジェクト
+let myCharts = {};
 
 const matchForm = document.getElementById('match-form');
 const submitButton = document.querySelector('#match-form button[type="submit"]');
+// --- 変更点1：recordsContainerをここで取得 ---
+const recordsContainer = document.getElementById('records-container');
 
-// --- 変更点1：グラフ描画の専門の関数を追加 ---
+
+// (saveMatches, updateStatistics, deleteMatch関数は変更なし)
+function saveMatches() {
+    localStorage.setItem('cardGameMatches', JSON.stringify(matches));
+}
+
+function updateStatistics() {
+    const statisticsDiv = document.getElementById('statistics');
+    if (matches.length === 0) {
+        statisticsDiv.innerHTML = '<p>まだ対戦記録がありません。</p>';
+        return;
+    }
+    const totalMatches = matches.length;
+    const wins = matches.filter(match => match.result === 'win').length;
+    const losses = totalMatches - wins;
+    const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : 0;
+    statisticsDiv.innerHTML = `
+        <h3>全体統計</h3>
+        <p><strong>総対戦数:</strong> ${totalMatches} 回</p>
+        <p><strong>戦績:</strong> ${wins} 勝 ${losses} 敗</p>
+        <p><strong>全体勝率:</strong> ${winRate} %</p>
+    `;
+}
+
+function deleteMatch(index) {
+    if (confirm('この記録を本当に削除してもよろしいですか？')) {
+        matches.splice(index, 1);
+        displayMatches();
+        updateStatistics();
+        saveMatches();
+        renderCharts();
+    }
+}
+
+// --- 変更点2：displayMatches関数を完全に書き換え ---
+/**
+ * 対戦記録をデッキごとにグループ化してアコーディオン表示する関数
+ */
+function displayMatches() {
+    // まず表示エリアを空にする
+    recordsContainer.innerHTML = '';
+
+    // 1. 対戦記録をデッキ名でグループ分けする
+    const groupedByDeck = matches.reduce((acc, match) => {
+        const deckName = match.myDeck;
+        // もし、まだそのデッキのグループがなければ、空の配列で初期化する
+        if (!acc[deckName]) {
+            acc[deckName] = [];
+        }
+        // そのデッキのグループに、今回の対戦記録を追加する
+        acc[deckName].push(match);
+        return acc;
+    }, {});
+
+    // 2. グループ分けしたデータをもとにHTMLを組み立てる
+    for (const deckName in groupedByDeck) {
+        const deckMatches = groupedByDeck[deckName];
+
+        // アコーディオンの各セクション（グループ）を作成
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'deck-group';
+
+        // ヘッダーボタンを作成
+        const headerButton = document.createElement('button');
+        headerButton.className = 'deck-header';
+        headerButton.textContent = `${deckName} (${deckMatches.length}戦)`; // 例: 赤単アグロ (5戦)
+
+        const wins = deckMatches.filter(match => match.result === 'win').length;
+
+        // 2. このデッキグループの敗北数を計算する
+        const losses = deckMatches.length - wins;
+
+        // 3. このデッキグループの勝率を計算する
+        const winRate = deckMatches.length > 0 ? ((wins / deckMatches.length) * 100).toFixed(1) : 0;
+
+        // 4. ヘッダーボタンに、戦績と勝率も表示する
+        headerButton.textContent = `${deckName} (${deckMatches.length}戦 / ${wins}勝 ${losses}敗 / 勝率: ${winRate}%)`;
+
+        // 対戦記録リストを格納するパネルを作成
+        const panelDiv = document.createElement('div');
+        panelDiv.className = 'match-list-panel';
+
+        // 各対戦記録のHTML（li要素）をパネルの中に追加していく
+        deckMatches.forEach(match => {
+            const listItem = document.createElement('div'); // liからdivに変更
+            listItem.className = 'match-record-item';
+            listItem.innerHTML = `
+                <p><strong>日付:</strong> ${match.date}</p>
+                <p><strong>相手デッキ:</strong> ${match.opponentDeck}</p>
+                <p><strong>結果:</strong> ${match.result}</p>
+                <p><strong>ターン数:</strong> ${match.turns ? match.turns : 'N/A'}</p>
+                <p style="flex-basis: 100%;"><strong>メモ:</strong> ${match.notes ? match.notes : 'なし'}</p>
+            `;
+            // 削除ボタンは、どのmatches配列のインデックスか特定する必要があるため、少し工夫が必要
+            // ここでは簡略化のため、一旦削除ボタンの表示を保留します。
+            panelDiv.appendChild(listItem);
+        });
+
+        // 作成した要素を組み立てる
+        groupDiv.appendChild(headerButton);
+        groupDiv.appendChild(panelDiv);
+        recordsContainer.appendChild(groupDiv);
+    }
+}
+
+
+// --- 変更点3：アコーディオンの開閉を管理する処理を追加 ---
+recordsContainer.addEventListener('click', function (event) {
+    // クリックされたのがクラス名に'deck-header'を持つ要素かチェック
+    if (event.target.classList.contains('deck-header')) {
+        const panel = event.target.nextElementSibling; // クリックされたヘッダーのすぐ次の要素（パネル）を取得
+
+        // パネルの表示・非表示を切り替える
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+        } else {
+            panel.style.display = 'block';
+        }
+    }
+});
+
+
+// (submitButton.addEventListenerとDOMContentLoadedは、削除ボタンの簡略化以外はほぼ同じ)
+submitButton.addEventListener('click', function (event) {
+    event.preventDefault();
+    const dateInput = document.getElementById('matchDate');
+    const myDeckInput = document.getElementById('myDeck');
+    const opponentDeckInput = document.getElementById('opponentDeck');
+    const resultInput = document.getElementById('result');
+    const turnsInput = document.getElementById('turns');
+    const notesInput = document.getElementById('notes');
+    const matchData = {
+        date: dateInput.value, myDeck: myDeckInput.value, opponentDeck: opponentDeckInput.value,
+        result: resultInput.value, turns: turnsInput.value, notes: notesInput.value
+    };
+    matches.push(matchData);
+    displayMatches();
+    updateStatistics();
+    saveMatches();
+    renderCharts();
+
+    opponentDeckInput.value = '';
+    resultInput.value = 'win';
+    turnsInput.value = '';
+    notesInput.value = '';
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const storedMatches = localStorage.getItem('cardGameMatches');
+    if (storedMatches) {
+        matches = JSON.parse(storedMatches);
+    }
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    document.getElementById('matchDate').value = formattedDate;
+
+    updateStatistics();
+    displayMatches();
+    renderCharts();
+});
 /**
  * 全てのグラフを描画する関数
  */
@@ -20,15 +184,17 @@ function renderCharts() {
     myCharts = {};
     chartContainer.innerHTML = '<h2>デッキ別 対戦相手別勝率</h2>';
 
+    // 対戦記録がなければここで処理を終了
+    if (matches.length === 0) {
+        return;
+    }
+
     // ユニークな自分のデッキ名を取得する
     const myDecks = [...new Set(matches.map(match => match.myDeck))];
 
     // デッキごとにグラフを作成する
     myDecks.forEach(myDeckName => {
-        // そのデッキでの対戦記録だけをフィルタリング
         const filteredMatches = matches.filter(match => match.myDeck === myDeckName);
-
-        // 対戦相手のデッキごとの勝敗を集計
         const opponentDeckStats = {};
         filteredMatches.forEach(match => {
             if (!opponentDeckStats[match.opponentDeck]) {
@@ -40,16 +206,14 @@ function renderCharts() {
             }
         });
 
-        // グラフ用のデータ（ラベルと勝率）を作成
         const labels = Object.keys(opponentDeckStats);
         const data = labels.map(label => {
             const stats = opponentDeckStats[label];
             return (stats.wins / stats.total) * 100;
         });
 
-        if (labels.length === 0) return; // 表示するデータがなければ何もしない
+        if (labels.length === 0) return;
 
-        // グラフを描画するための<canvas>要素を動的に作成
         const canvas = document.createElement('canvas');
         const chartId = `chart-${myDeckName.replace(/\s+/g, '-')}`;
         canvas.id = chartId;
@@ -62,7 +226,6 @@ function renderCharts() {
         wrapper.appendChild(canvas);
         chartContainer.appendChild(wrapper);
 
-        // Chart.jsを使ってグラフを描画
         const ctx = canvas.getContext('2d');
         myCharts[chartId] = new Chart(ctx, {
             type: 'bar',
@@ -91,93 +254,5 @@ function renderCharts() {
     });
 }
 
-
-function saveMatches() {
-    localStorage.setItem('cardGameMatches', JSON.stringify(matches));
-}
-
-function updateStatistics() {
-    const statisticsDiv = document.getElementById('statistics');
-    if (matches.length === 0) {
-        statisticsDiv.innerHTML = '<p>まだ対戦記録がありません。</p>';
-        return;
-    }
-    const totalMatches = matches.length;
-    const wins = matches.filter(match => match.result === 'win').length;
-    const losses = totalMatches - wins;
-    const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : 0;
-    statisticsDiv.innerHTML = `
-        <h3>全体統計</h3>
-        <p><strong>総対戦数:</strong> ${totalMatches} 回</p>
-        <p><strong>戦績:</strong> ${wins} 勝 ${losses} 敗</p>
-        <p><strong>全体勝率:</strong> ${winRate} %</p>
-    `;
-}
-
-function deleteMatch(index) {
-    matches.splice(index, 1);
-    displayMatches();
-    updateStatistics();
-    saveMatches();
-    renderCharts(); // --- 変更点2：削除後にもグラフを更新 ---
-}
-
-function displayMatches() {
-    const recordsContainer = document.getElementById('records-container');
-    recordsContainer.innerHTML = '';
-    matches.forEach(function (match, index) {
-        const listItem = document.createElement('li');
-        listItem.classList.add('match-record-item');
-        listItem.innerHTML = `
-            <p><strong>日付:</strong> ${match.date}</p>
-            <p><strong>使用デッキ:</strong> ${match.myDeck}</p>
-            <p><strong>相手デッキ:</strong> ${match.opponentDeck}</p>
-            <p><strong>結果:</strong> ${match.result}</p>
-            <div class="actions">
-                <button onclick="deleteMatch(${index})">削除</button>
-            </div>
-        `;
-        recordsContainer.appendChild(listItem);
-    });
-}
-
-submitButton.addEventListener('click', function (event) {
-    event.preventDefault();
-    const dateInput = document.getElementById('matchDate');
-    const myDeckInput = document.getElementById('myDeck');
-    const opponentDeckInput = document.getElementById('opponentDeck');
-    const resultInput = document.getElementById('result');
-    const turnsInput = document.getElementById('turns');
-    const notesInput = document.getElementById('notes');
-    const matchData = {
-        date: dateInput.value, myDeck: myDeckInput.value, opponentDeck: opponentDeckInput.value,
-        result: resultInput.value, turns: turnsInput.value, notes: notesInput.value
-    };
-    matches.push(matchData);
-    displayMatches();
-    updateStatistics();
-    saveMatches();
-    renderCharts(); // --- 変更点3：追加後にもグラフを更新 ---
-
-    opponentDeckInput.value = '';
-    resultInput.value = 'win';
-    turnsInput.value = '';
-    notesInput.value = '';
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    const storedMatches = localStorage.getItem('cardGameMatches');
-    if (storedMatches) {
-        matches = JSON.parse(storedMatches);
-    }
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day}`;
-    document.getElementById('matchDate').value = formattedDate;
-
-    updateStatistics();
-    displayMatches();
-    renderCharts(); // --- 変更点4：初期表示でもグラフを更新 ---
-});
+// 削除機能はグループ化によって複雑になるため、次のステップで再度実装します。
+// そのため、deleteMatch関数は一旦使われなくなります。
